@@ -32,6 +32,8 @@ import android.widget.Toast;
 import com.example.upasana.firestation2.Model.MyPlaces;
 import com.example.upasana.firestation2.Model.Results;
 import com.example.upasana.firestation2.Remote.IGoogleApiService;
+import com.firebase.geofire.GeoFire;
+import com.firebase.geofire.GeoLocation;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.Response;
@@ -46,6 +48,10 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 import org.json.JSONObject;
 
@@ -119,12 +125,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 LatLng latLng=new LatLng(lat,lng);
                                 markerOptions.position(latLng);
                                 markerOptions.title(placeName);
-                                if(fire_station.equals("fire station")) {
+                                if(fire_station.equals("fire_station")) {
                                     markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
                                 }
                                 mMap.addMarker(markerOptions);
                                mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
                                mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
+
+                                DatabaseReference ref = FirebaseDatabase.getInstance().getReference().child("firestations").child("firestation");
+                                GeoFire geoFire = new GeoFire(ref);
+                                geoFire.setLocation("firestation"+i, new GeoLocation(lat,lng), new GeoFire.CompletionListener() {
+                                    @Override
+                                    public void onComplete(String key, DatabaseError error) {
+                                        if (error != null) {
+                                            System.err.println("There was an error saving the location to GeoFire: " + error);
+                                        } else {
+                                            System.out.println("Location saved on server successfully!");
+                                        }
+                                    }
+                                });
 
 
                             }
@@ -143,7 +162,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private String getUrl(double latitude, double longitude, String fire_station) {
         StringBuilder googlePlacesUrl=new StringBuilder("https://maps.googleapis.com/maps/api/place/nearbysearch/json?");
         googlePlacesUrl.append("location="+latitude+","+longitude);
-        googlePlacesUrl.append("&radius="+40000);
+        googlePlacesUrl.append("&radius="+10000);
         googlePlacesUrl.append("&type="+fire_station);
         googlePlacesUrl.append("&sensor=true");
         googlePlacesUrl.append("&key="+getResources().getString(R.string.browser_key));
